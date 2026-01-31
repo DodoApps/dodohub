@@ -1,19 +1,27 @@
-# DodoHub
-
-A native macOS app store for discovering, downloading, and managing MaOS applications.
-
-![macOS](https://img.shields.io/badge/macOS-14.0+-blue)
-![Swift](https://img.shields.io/badge/Swift-5.9-orange)
-![License](https://img.shields.io/badge/License-MIT-green)
-
-
-<img width="1315" height="854" alt="image" src="https://github.com/user-attachments/assets/cbb71acc-b1e3-41f8-9fca-785c9ca60dfd" />
-
-<p>
-
-<img width="1314" height="851" alt="image" src="https://github.com/user-attachments/assets/7f9bfa21-23cd-41ff-8900-c091ba48b716" />
-
+<p align="center">
+  <img src="icon.png" alt="DodoHub" width="128" height="128">
 </p>
+
+<h1 align="center">DodoHub</h1>
+
+<p align="center">
+  A native macOS app store for discovering, downloading, and managing macOS applications.
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/macOS-14.0+-blue" alt="macOS">
+  <img src="https://img.shields.io/badge/Swift-5.9-orange" alt="Swift">
+  <img src="https://img.shields.io/badge/License-MIT-green" alt="License">
+</p>
+
+<p align="center">
+  <img width="1315" alt="DodoHub Screenshot" src="https://github.com/user-attachments/assets/cbb71acc-b1e3-41f8-9fca-785c9ca60dfd" />
+</p>
+
+<p align="center">
+  <img width="1314" alt="DodoHub App Detail" src="https://github.com/user-attachments/assets/7f9bfa21-23cd-41ff-8900-c091ba48b716" />
+</p>
+
 ## Features
 
 - **App catalog** - Browse all available DodoApps with descriptions, screenshots, and features
@@ -23,8 +31,6 @@ A native macOS app store for discovering, downloading, and managing MaOS applica
 - **Verification badges** - See which apps are open source, notarized, and privacy-focused
 - **Maintenance status** - Know if an app is actively maintained
 
-
-
 ## Requirements
 
 - macOS 14.0 (Sonoma) or later
@@ -32,7 +38,14 @@ A native macOS app store for discovering, downloading, and managing MaOS applica
 
 ## Installation
 
-### Download
+### Homebrew (recommended)
+
+```bash
+brew tap dodoapps/tap
+brew install --cask dodohub
+```
+
+### Download DMG
 
 Download the latest release from the [Releases](https://github.com/DodoApps/dodohub/releases) page.
 
@@ -93,3 +106,4 @@ MIT License - see [LICENSE](LICENSE) for details.
 - [DodoTidy](https://github.com/DodoApps/dodotidy) - System cleaner
 - [DodoCount](https://github.com/DodoApps/dodocount) - Analytics menubar
 - [DodoNest](https://github.com/DodoApps/dodonest) - Menu bar organizer
+- [DodoPass](https://github.com/DodoApps/dodopass) - Password manager
