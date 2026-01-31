@@ -17,7 +17,6 @@ struct Publisher: Codable, Identifiable {
     let description: String?
     let website: String?
     let github: String
-    let icon: String?
     let email: String?
     let sponsorUrl: String?
     let verified: Bool
@@ -110,6 +109,7 @@ enum AppCategory: String, Codable, CaseIterable {
     case productivity
     case utilities
     case analytics
+    case security
 
     var displayName: String {
         rawValue.capitalized
@@ -120,6 +120,7 @@ enum AppCategory: String, Codable, CaseIterable {
         case .productivity: return "pencil.and.outline"
         case .utilities: return "wrench.and.screwdriver"
         case .analytics: return "chart.bar"
+        case .security: return "lock.shield"
         }
     }
 }

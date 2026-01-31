@@ -86,15 +86,7 @@ struct SidebarView: View {
                                     }
                                 }
                             } icon: {
-                                CachedAsyncImage(url: URL(string: publisher.icon ?? "")) { image in
-                                    image
-                                        .resizable()
-                                        .aspectRatio(contentMode: .fit)
-                                } placeholder: {
-                                    Image(systemName: "person.circle")
-                                }
-                                .frame(width: 20, height: 20)
-                                .clipShape(Circle())
+                                Image(systemName: "person.circle")
                             }
                         }
                     }

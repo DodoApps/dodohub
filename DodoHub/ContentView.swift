@@ -5,8 +5,31 @@ struct ContentView: View {
     @StateObject private var stateManager = AppStateManager.shared
     @State private var selectedFilter: SidebarFilter = .all
     @State private var selectedApp: CatalogApp?
+    @State private var isInitialLoading = true
 
     var body: some View {
+        Group {
+            if isInitialLoading {
+                LoadingView()
+            } else {
+                mainContent
+            }
+        }
+        .task {
+            await catalogService.fetchCatalog()
+            stateManager.checkInstallationStatus(for: catalogService.apps)
+
+            // Small delay for smooth transition
+            try? await Task.sleep(nanoseconds: 500_000_000)
+
+            withAnimation(.easeOut(duration: 0.3)) {
+                isInitialLoading = false
+            }
+        }
+        .frame(minWidth: 900, minHeight: 600)
+    }
+
+    private var mainContent: some View {
         NavigationSplitView {
             SidebarView(
                 selectedFilter: $selectedFilter,
@@ -14,26 +37,25 @@ struct ContentView: View {
                 stateManager: stateManager
             )
         } detail: {
-            detailContent
+            NavigationStack {
+                if let app = selectedApp {
+                    AppDetailView(
+                        app: app,
+                        publisher: catalogService.publisher(for: app),
+                        stateManager: stateManager,
+                        onBack: { selectedApp = nil }
+                    )
+                } else {
+                    detailContent
+                }
+            }
         }
-        .task {
-            await catalogService.fetchCatalog()
-            stateManager.checkInstallationStatus(for: catalogService.apps)
-        }
-        .sheet(item: $selectedApp) { app in
-            AppDetailView(
-                app: app,
-                publisher: catalogService.publisher(for: app),
-                stateManager: stateManager
-            )
-        }
-        .frame(minWidth: 900, minHeight: 600)
     }
 
     @ViewBuilder
     private var detailContent: some View {
         if catalogService.isLoading && catalogService.apps.isEmpty {
-            loadingView
+            LoadingView()
         } else if let error = catalogService.error, catalogService.apps.isEmpty {
             errorView(error)
         } else {
@@ -53,21 +75,28 @@ struct ContentView: View {
             )
 
         case .featured:
-            VStack(spacing: 24) {
-                if !catalogService.featuredApps.isEmpty {
-                    FeaturedSection(
-                        apps: catalogService.featuredApps,
-                        stateManager: stateManager,
-                        selectedApp: $selectedApp
-                    )
-                }
+            ZStack {
+                ThemedBackground()
 
-                AppGridView(
-                    apps: catalogService.apps,
-                    title: "All apps",
-                    stateManager: stateManager,
-                    selectedApp: $selectedApp
-                )
+                ScrollView {
+                    VStack(spacing: 28) {
+                        if !catalogService.featuredApps.isEmpty {
+                            FeaturedSection(
+                                apps: catalogService.featuredApps,
+                                stateManager: stateManager,
+                                selectedApp: $selectedApp
+                            )
+                        }
+
+                        AppGridView(
+                            apps: catalogService.apps,
+                            title: "All apps",
+                            stateManager: stateManager,
+                            selectedApp: $selectedApp
+                        )
+                    }
+                    .padding(.top, 20)
+                }
             }
 
         case .installed:
@@ -106,40 +135,50 @@ struct ContentView: View {
         }
     }
 
-    private var loadingView: some View {
-        VStack(spacing: 16) {
-            ProgressView()
-                .scaleEffect(1.5)
-
-            Text("Loading catalog...")
-                .foregroundColor(.secondary)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
+    @Environment(\.colorScheme) private var colorScheme
 
     private func errorView(_ error: Error) -> some View {
-        VStack(spacing: 16) {
-            Image(systemName: "exclamationmark.triangle")
-                .font(.system(size: 48))
-                .foregroundColor(.orange)
+        ZStack {
+            ThemedBackground()
 
-            Text("Failed to load catalog")
-                .font(.headline)
+            VStack(spacing: 20) {
+                ZStack {
+                    Circle()
+                        .fill(Color.orange.opacity(0.15))
+                        .frame(width: 80, height: 80)
 
-            Text(error.localizedDescription)
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-
-            Button("Try again") {
-                Task {
-                    await catalogService.fetchCatalog(forceRefresh: true)
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 36))
+                        .foregroundStyle(.orange.gradient)
                 }
+
+                VStack(spacing: 8) {
+                    Text("Failed to load catalog")
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundStyle(colorScheme == .dark ? .white : Color(white: 0.1))
+
+                    Text(error.localizedDescription)
+                        .font(.system(size: 14))
+                        .foregroundStyle(colorScheme == .dark ? Color(white: 0.6) : Color(white: 0.5))
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: 300)
+                }
+
+                Button(action: {
+                    Task {
+                        await catalogService.fetchCatalog(forceRefresh: true)
+                    }
+                }) {
+                    Text("Try again")
+                        .font(.system(size: 14, weight: .semibold))
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 10)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.accentGreen)
             }
-            .buttonStyle(.borderedProminent)
+            .padding(40)
         }
-        .padding(40)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 

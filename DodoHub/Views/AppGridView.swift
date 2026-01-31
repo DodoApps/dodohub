@@ -6,9 +6,10 @@ struct AppGridView: View {
     @ObservedObject var stateManager: AppStateManager
     @Binding var selectedApp: CatalogApp?
     @State private var searchText = ""
+    @Environment(\.colorScheme) private var colorScheme
 
     private let columns = [
-        GridItem(.adaptive(minimum: 200, maximum: 280), spacing: 16)
+        GridItem(.adaptive(minimum: 220, maximum: 300), spacing: 20)
     ]
 
     var filteredApps: [CatalogApp] {
@@ -23,42 +24,50 @@ struct AppGridView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            // Header
-            HStack {
-                Text(title)
-                    .font(.title2)
-                    .fontWeight(.semibold)
+        ZStack {
+            ThemedBackground()
 
-                Spacer()
+            VStack(spacing: 0) {
+                // Header
+                HStack {
+                    Text(title)
+                        .font(.system(size: 26, weight: .bold))
+                        .foregroundStyle(colorScheme == .dark ? .white : Color(white: 0.1))
 
-                Text("\(filteredApps.count) apps")
-                    .foregroundColor(.secondary)
-            }
-            .padding(.horizontal, 20)
-            .padding(.top, 20)
-            .padding(.bottom, 12)
+                    Spacer()
 
-            Divider()
+                    Text("\(filteredApps.count) apps")
+                        .font(.system(size: 15))
+                        .foregroundStyle(colorScheme == .dark ? Color(white: 0.5) : Color(white: 0.5))
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 7)
+                        .background(colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.05))
+                        .clipShape(Capsule())
+                }
+                .padding(.horizontal, 24)
+                .padding(.top, 24)
+                .padding(.bottom, 16)
 
-            // Grid
-            ScrollView {
-                if filteredApps.isEmpty {
-                    emptyState
-                } else {
-                    LazyVGrid(columns: columns, spacing: 16) {
-                        ForEach(filteredApps) { app in
-                            AppCardView(
-                                app: app,
-                                state: stateManager.state(for: app.id),
-                                onAction: { handleAction(for: app) }
-                            )
-                            .onTapGesture {
-                                selectedApp = app
+                // Grid
+                ScrollView {
+                    if filteredApps.isEmpty {
+                        emptyState
+                    } else {
+                        LazyVGrid(columns: columns, spacing: 20) {
+                            ForEach(filteredApps) { app in
+                                AppCardView(
+                                    app: app,
+                                    state: stateManager.state(for: app.id)
+                                )
+                                .onTapGesture {
+                                    selectedApp = app
+                                }
+                                .contentShape(Rectangle())
                             }
                         }
+                        .padding(.horizontal, 24)
+                        .padding(.bottom, 24)
                     }
-                    .padding(20)
                 }
             }
         }
@@ -66,38 +75,33 @@ struct AppGridView: View {
     }
 
     private var emptyState: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "app.dashed")
-                .font(.system(size: 48))
-                .foregroundColor(.secondary)
+        VStack(spacing: 20) {
+            ZStack {
+                Circle()
+                    .fill(colorScheme == .dark ? Color.white.opacity(0.05) : Color.black.opacity(0.03))
+                    .frame(width: 100, height: 100)
 
-            Text("No apps found")
-                .font(.headline)
+                Image(systemName: "app.dashed")
+                    .font(.system(size: 40))
+                    .foregroundStyle(colorScheme == .dark ? Color(white: 0.4) : Color(white: 0.6))
+            }
 
-            if !searchText.isEmpty {
-                Text("Try a different search term")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
+            VStack(spacing: 8) {
+                Text("No apps found")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(colorScheme == .dark ? .white : Color(white: 0.2))
+
+                if !searchText.isEmpty {
+                    Text("Try a different search term")
+                        .font(.system(size: 14))
+                        .foregroundStyle(colorScheme == .dark ? Color(white: 0.5) : Color(white: 0.5))
+                }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(40)
+        .padding(60)
     }
 
-    private func handleAction(for app: CatalogApp) {
-        let state = stateManager.state(for: app.id)
-
-        switch state {
-        case .notInstalled, .updateAvailable:
-            Task {
-                await DownloadManager.shared.download(app)
-            }
-        case .installed:
-            stateManager.openApp(app)
-        case .downloading, .installing:
-            break
-        }
-    }
 }
 
 // MARK: - Featured Section
@@ -106,19 +110,21 @@ struct FeaturedSection: View {
     let apps: [CatalogApp]
     @ObservedObject var stateManager: AppStateManager
     @Binding var selectedApp: CatalogApp?
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(spacing: 8) {
                 Image(systemName: "star.fill")
-                    .foregroundColor(.yellow)
+                    .foregroundStyle(.yellow.gradient)
                 Text("Featured")
-                    .font(.headline)
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundStyle(colorScheme == .dark ? .white : Color(white: 0.1))
             }
-            .padding(.horizontal, 20)
+            .padding(.horizontal, 24)
 
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 16) {
+                HStack(spacing: 20) {
                     ForEach(apps) { app in
                         FeaturedCard(
                             app: app,
@@ -129,7 +135,7 @@ struct FeaturedSection: View {
                         }
                     }
                 }
-                .padding(.horizontal, 20)
+                .padding(.horizontal, 24)
             }
         }
     }
@@ -138,28 +144,31 @@ struct FeaturedSection: View {
 struct FeaturedCard: View {
     let app: CatalogApp
     let state: AppInstallState
+    @Environment(\.colorScheme) private var colorScheme
+    @State private var isHovering = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 12) {
+        VStack(alignment: .leading, spacing: 18) {
+            HStack(spacing: 16) {
                 CachedAsyncImage(url: URL(string: app.icon)) { image in
                     image
                         .resizable()
-                        .aspectRatio(contentMode: .fit)
+                        .scaledToFill()
                 } placeholder: {
-                    RoundedRectangle(cornerRadius: 12)
+                    RoundedRectangle(cornerRadius: 14)
                         .fill(Color.gray.opacity(0.2))
                 }
-                .frame(width: 56, height: 56)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .frame(width: 64, height: 64)
+                .clipShape(RoundedRectangle(cornerRadius: 14))
 
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 6) {
                     Text(app.name)
-                        .font(.headline)
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(colorScheme == .dark ? .white : Color(white: 0.1))
 
                     Text(app.tagline)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                        .font(.system(size: 14))
+                        .foregroundStyle(colorScheme == .dark ? Color(white: 0.6) : Color(white: 0.45))
                         .lineLimit(2)
                 }
 
@@ -173,16 +182,29 @@ struct FeaturedCard: View {
                         .aspectRatio(contentMode: .fill)
                 } placeholder: {
                     Rectangle()
-                        .fill(Color.gray.opacity(0.1))
+                        .fill(colorScheme == .dark ? Color.white.opacity(0.05) : Color.black.opacity(0.03))
                 }
-                .frame(height: 120)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .frame(height: 160)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
             }
         }
-        .padding(16)
-        .frame(width: 300)
-        .background(Color(nsColor: .controlBackgroundColor))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
+        .padding(22)
+        .frame(width: 340)
+        .background(cardBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .opacity(isHovering ? 0.9 : 1.0)
+        .scaleEffect(isHovering ? 1.01 : 1.0)
+        .animation(.easeOut(duration: 0.2), value: isHovering)
+        .onHover { hovering in
+            isHovering = hovering
+        }
+    }
+
+    private var cardBackground: some ShapeStyle {
+        if colorScheme == .dark {
+            return AnyShapeStyle(Color(white: 0.12))
+        } else {
+            return AnyShapeStyle(Color(white: 0.98))
+        }
     }
 }

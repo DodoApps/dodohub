@@ -5,6 +5,7 @@ struct DodoHubApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .preferredColorScheme(.dark)
         }
         .windowStyle(.automatic)
         .defaultSize(width: 1100, height: 700)
