@@ -15,6 +15,14 @@
 </p>
 
 <p align="center">
+  <b>English</b> •
+  <a href="README.de.md">Deutsch</a> •
+  <a href="README.fr.md">Français</a> •
+  <a href="README.es.md">Español</a> •
+  <a href="README.tr.md">Türkçe</a>
+</p>
+
+<p align="center">
   <img width="1315" alt="DodoHub Screenshot" src="https://github.com/user-attachments/assets/cbb71acc-b1e3-41f8-9fca-785c9ca60dfd" />
 </p>
 
