@@ -167,11 +167,11 @@ struct SettingsView: View {
                 .foregroundStyle(.secondary)
 
             HStack(spacing: 20) {
-                Link(destination: URL(string: "https://github.com/AeroWatchDk662/DodoHub")!) {
+                Link(destination: URL(string: "https://github.com/DodoApps/DodoHub")!) {
                     Label("GitHub", systemImage: "link")
                 }
 
-                Link(destination: URL(string: "https://github.com/AeroWatchDk662/DodoHub/issues")!) {
+                Link(destination: URL(string: "https://github.com/DodoApps/DodoHub/issues")!) {
                     Label("Report issue", systemImage: "exclamationmark.bubble")
                 }
             }

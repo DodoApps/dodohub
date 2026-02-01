@@ -118,8 +118,10 @@ class DownloadManager: NSObject, ObservableObject {
                 }
             }
 
-            // Move to Downloads folder
-            let downloadsURL = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first!
+            // Move to download location from settings
+            let downloadPath = SettingsManager.shared.downloadLocation
+            let expandedPath = NSString(string: downloadPath).expandingTildeInPath
+            let downloadsURL = URL(fileURLWithPath: expandedPath)
             let destinationURL = downloadsURL.appendingPathComponent("\(app.name)-\(app.version).dmg")
 
             // Remove existing file if present

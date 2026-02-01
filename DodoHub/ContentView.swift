@@ -18,7 +18,10 @@ struct ContentView: View {
             }
         }
         .task {
-            await catalogService.fetchCatalog()
+            // Respect the refresh on launch setting
+            // forceRefresh=true bypasses cache, forceRefresh=false uses cache if available
+            let forceRefresh = SettingsManager.shared.refreshOnLaunch
+            await catalogService.fetchCatalog(forceRefresh: forceRefresh)
             stateManager.checkInstallationStatus(for: catalogService.apps)
 
             // Small delay for smooth transition
