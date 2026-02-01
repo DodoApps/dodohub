@@ -289,3 +289,101 @@ struct StarsBadge: View {
         }
     }
 }
+
+// MARK: - Circular Progress View
+
+struct CircularProgressView: View {
+    let progress: Double
+    var size: CGFloat = 44
+    var lineWidth: CGFloat = 4
+    var showPercentage: Bool = true
+    var trackColor: Color = Color.gray.opacity(0.3)
+    var progressColor: Color = .accentGreen
+
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        ZStack {
+            // Background track
+            Circle()
+                .stroke(trackColor, lineWidth: lineWidth)
+
+            // Progress arc
+            Circle()
+                .trim(from: 0, to: progress)
+                .stroke(
+                    progressGradient,
+                    style: StrokeStyle(lineWidth: lineWidth, lineCap: .round)
+                )
+                .rotationEffect(.degrees(-90))
+                .animation(.easeInOut(duration: 0.2), value: progress)
+
+            // Percentage text
+            if showPercentage {
+                Text("\(Int(progress * 100))")
+                    .font(.system(size: size * 0.32, weight: .semibold, design: .rounded))
+                    .foregroundStyle(colorScheme == .dark ? .white : Color(white: 0.2))
+            }
+        }
+        .frame(width: size, height: size)
+    }
+
+    private var progressGradient: AngularGradient {
+        AngularGradient(
+            gradient: Gradient(colors: [
+                progressColor.opacity(0.7),
+                progressColor
+            ]),
+            center: .center,
+            startAngle: .degrees(0),
+            endAngle: .degrees(360 * progress)
+        )
+    }
+}
+
+// MARK: - Download Progress View (for cards)
+
+struct DownloadProgressView: View {
+    let progress: Double
+    let appName: String
+    var size: CGFloat = 48
+
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        ZStack {
+            // Outer glow effect
+            Circle()
+                .fill(Color.accentGreen.opacity(0.15))
+                .frame(width: size + 8, height: size + 8)
+
+            // Background track
+            Circle()
+                .stroke(
+                    colorScheme == .dark ? Color.white.opacity(0.1) : Color.black.opacity(0.1),
+                    lineWidth: 4
+                )
+                .frame(width: size, height: size)
+
+            // Progress arc
+            Circle()
+                .trim(from: 0, to: progress)
+                .stroke(
+                    LinearGradient(
+                        colors: [Color.accentGreen, Color.accentGreen.opacity(0.7)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    style: StrokeStyle(lineWidth: 4, lineCap: .round)
+                )
+                .frame(width: size, height: size)
+                .rotationEffect(.degrees(-90))
+                .animation(.easeInOut(duration: 0.15), value: progress)
+
+            // Percentage
+            Text("\(Int(progress * 100))")
+                .font(.system(size: size * 0.3, weight: .bold, design: .rounded))
+                .foregroundStyle(colorScheme == .dark ? .white : Color(white: 0.2))
+        }
+    }
+}

@@ -122,16 +122,41 @@ struct AppDetailView: View {
         }
     }
 
+    @ViewBuilder
     private var actionButton: some View {
         let state = stateManager.state(for: app.id)
 
-        return VStack(spacing: 6) {
-            Button(action: handleAction) {
-                HStack {
-                    if case .downloading(let progress) = state {
-                        ProgressView(value: progress)
-                            .progressViewStyle(.linear)
-                    } else {
+        VStack(spacing: 8) {
+            if case .downloading(let progress) = state {
+                // Show circular progress during download
+                VStack(spacing: 8) {
+                    DownloadProgressView(progress: progress, appName: app.name, size: 64)
+
+                    Button("Cancel") {
+                        DownloadManager.shared.cancelDownload(appId: app.id)
+                    }
+                    .buttonStyle(.plain)
+                    .font(.system(size: 12))
+                    .foregroundColor(.secondary)
+                }
+            } else if case .installing = state {
+                // Show installing state
+                VStack(spacing: 8) {
+                    ZStack {
+                        Circle()
+                            .fill(Color.accentGreen.opacity(0.15))
+                            .frame(width: 72, height: 72)
+                        ProgressView()
+                            .scaleEffect(1.3)
+                    }
+                    Text("Installing...")
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary)
+                }
+            } else {
+                // Show action button
+                Button(action: handleAction) {
+                    HStack(spacing: 6) {
                         if state.isFailed {
                             Image(systemName: "arrow.clockwise")
                                 .font(.system(size: 12, weight: .semibold))
@@ -140,20 +165,20 @@ struct AppDetailView: View {
                             .font(.system(size: 14, weight: .semibold))
                             .frame(maxWidth: .infinity)
                     }
+                    .frame(height: 34)
                 }
-                .frame(height: 34)
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(buttonColor)
-            .disabled(!state.isActionable)
+                .buttonStyle(.borderedProminent)
+                .tint(buttonColor)
+                .disabled(!state.isActionable)
 
-            if let errorMessage = state.errorMessage {
-                Text(errorMessage)
-                    .font(.system(size: 11))
-                    .foregroundColor(.red)
-                    .lineLimit(2)
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: 130)
+                if let errorMessage = state.errorMessage {
+                    Text(errorMessage)
+                        .font(.system(size: 11))
+                        .foregroundColor(.red)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: 130)
+                }
             }
         }
     }

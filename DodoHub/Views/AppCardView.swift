@@ -47,46 +47,61 @@ struct AppCardView: View {
 
                 Spacer()
 
-                // Status badges
+                // Status badges or download progress
                 VStack(alignment: .trailing, spacing: 6) {
-                    if app.featured == true {
-                        HStack(spacing: 5) {
-                            Image(systemName: "star.fill")
-                                .foregroundStyle(.yellow.gradient)
-                            Text("Featured")
-                                .font(.system(size: 12, weight: .semibold))
+                    if case .downloading(let progress) = state {
+                        // Show circular progress when downloading
+                        DownloadProgressView(progress: progress, appName: app.name, size: 52)
+                    } else if case .installing = state {
+                        // Show installing indicator
+                        ZStack {
+                            Circle()
+                                .fill(Color.accentGreen.opacity(0.15))
+                                .frame(width: 60, height: 60)
+                            ProgressView()
+                                .scaleEffect(1.2)
                         }
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .background(.yellow.opacity(colorScheme == .dark ? 0.2 : 0.12))
-                        .foregroundStyle(colorScheme == .dark ? .yellow : Color(red: 0.7, green: 0.5, blue: 0))
-                        .clipShape(Capsule())
-                    }
+                    } else {
+                        // Show status badges
+                        if app.featured == true {
+                            HStack(spacing: 5) {
+                                Image(systemName: "star.fill")
+                                    .foregroundStyle(.yellow.gradient)
+                                Text("Featured")
+                                    .font(.system(size: 12, weight: .semibold))
+                            }
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(.yellow.opacity(colorScheme == .dark ? 0.2 : 0.12))
+                            .foregroundStyle(colorScheme == .dark ? .yellow : Color(red: 0.7, green: 0.5, blue: 0))
+                            .clipShape(Capsule())
+                        }
 
-                    if hasUpdate {
-                        HStack(spacing: 5) {
-                            Image(systemName: "arrow.down.circle.fill")
-                            Text("Update")
-                                .font(.system(size: 12, weight: .semibold))
+                        if hasUpdate {
+                            HStack(spacing: 5) {
+                                Image(systemName: "arrow.down.circle.fill")
+                                Text("Update")
+                                    .font(.system(size: 12, weight: .semibold))
+                            }
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(Color.orange.opacity(colorScheme == .dark ? 0.25 : 0.12))
+                            .foregroundStyle(colorScheme == .dark ? Color(red: 1.0, green: 0.7, blue: 0.4) : .orange)
+                            .clipShape(Capsule())
                         }
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .background(Color.orange.opacity(colorScheme == .dark ? 0.25 : 0.12))
-                        .foregroundStyle(colorScheme == .dark ? Color(red: 1.0, green: 0.7, blue: 0.4) : .orange)
-                        .clipShape(Capsule())
-                    }
 
-                    if hasFailed {
-                        HStack(spacing: 5) {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                            Text("Failed")
-                                .font(.system(size: 12, weight: .semibold))
+                        if hasFailed {
+                            HStack(spacing: 5) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                Text("Failed")
+                                    .font(.system(size: 12, weight: .semibold))
+                            }
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(Color.red.opacity(colorScheme == .dark ? 0.25 : 0.12))
+                            .foregroundStyle(colorScheme == .dark ? Color(red: 1.0, green: 0.5, blue: 0.5) : .red)
+                            .clipShape(Capsule())
                         }
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .background(Color.red.opacity(colorScheme == .dark ? 0.25 : 0.12))
-                        .foregroundStyle(colorScheme == .dark ? Color(red: 1.0, green: 0.5, blue: 0.5) : .red)
-                        .clipShape(Capsule())
                     }
                 }
             }
