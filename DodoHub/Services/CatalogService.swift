@@ -113,7 +113,7 @@ class CatalogService: ObservableObject {
             app.name.lowercased().contains(lowercased) ||
             app.tagline.lowercased().contains(lowercased) ||
             app.description.lowercased().contains(lowercased) ||
-            (app.features?.contains { $0.lowercased().contains(lowercased) } ?? false)
+            app.features.contains { $0.lowercased().contains(lowercased) }
         }
     }
 }

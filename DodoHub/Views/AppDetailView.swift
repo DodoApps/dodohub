@@ -27,15 +27,19 @@ struct AppDetailView: View {
                     descriptionSection
 
                     // Features
-                    if let features = app.features, !features.isEmpty {
-                        featuresSection(features)
+                    if !app.features.isEmpty {
+                        featuresSection(app.features)
                     }
 
                     // Verification
-                    verificationSection
+                    if app.verification != nil {
+                        verificationSection
+                    }
 
                     // Stats
-                    statsSection
+                    if app.repoStats != nil {
+                        statsSection
+                    }
 
                     // Publisher
                     if let publisher = publisher {
@@ -235,45 +239,55 @@ struct AppDetailView: View {
 
     // MARK: - Verification
 
+    @ViewBuilder
     private var verificationSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Verification")
-                .font(.system(size: 18, weight: .semibold))
+        if let verification = app.verification {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Verification")
+                    .font(.system(size: 18, weight: .semibold))
 
-            VerificationBadges(verification: app.verification)
+                VerificationBadges(verification: verification)
 
-            HStack(spacing: 18) {
-                Label("License: \(app.verification.license)", systemImage: "doc.text")
-                Label("Verified: \(app.verification.verifiedAt)", systemImage: "checkmark.seal")
-            }
-            .font(.system(size: 13))
-            .foregroundColor(.secondary)
-
-            if let repoUrl = URL(string: app.verification.repoUrl) {
-                Link(destination: repoUrl) {
-                    Label("View source code", systemImage: "chevron.left.forwardslash.chevron.right")
+                HStack(spacing: 18) {
+                    if let license = verification.license {
+                        Label("License: \(license)", systemImage: "doc.text")
+                    }
+                    if let verifiedAt = verification.verifiedAt {
+                        Label("Verified: \(verifiedAt)", systemImage: "checkmark.seal")
+                    }
                 }
-                .font(.system(size: 14))
+                .font(.system(size: 13))
+                .foregroundColor(.secondary)
+
+                if let repoUrlString = verification.repoUrl, let repoUrl = URL(string: repoUrlString) {
+                    Link(destination: repoUrl) {
+                        Label("View source code", systemImage: "chevron.left.forwardslash.chevron.right")
+                    }
+                    .font(.system(size: 14))
+                }
             }
         }
     }
 
     // MARK: - Stats
 
+    @ViewBuilder
     private var statsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Repository stats")
                 .font(.system(size: 18, weight: .semibold))
 
             HStack(spacing: 26) {
-                StatItem(icon: "star.fill", value: "\(app.repoStats.stars)", label: "Stars", color: .yellow)
-                StatItem(icon: "exclamationmark.circle", value: "\(app.repoStats.openIssues)", label: "Open issues", color: .orange)
+                StatItem(icon: "star.fill", value: "\(app.stars)", label: "Stars", color: .yellow)
+                StatItem(icon: "exclamationmark.circle", value: "\(app.openIssues)", label: "Open issues", color: .orange)
                 MaintenanceBadge(status: app.maintenanceStatus)
             }
 
-            Text("Last updated: \(app.formattedReleaseDate)")
-                .font(.system(size: 13))
-                .foregroundColor(.secondary)
+            if !app.formattedReleaseDate.isEmpty && app.formattedReleaseDate != "Unknown" {
+                Text("Last updated: \(app.formattedReleaseDate)")
+                    .font(.system(size: 13))
+                    .foregroundColor(.secondary)
+            }
         }
     }
 
@@ -316,7 +330,7 @@ struct AppDetailView: View {
 
                 Spacer()
 
-                if let githubUrl = URL(string: publisher.github) {
+                if let github = publisher.github, let githubUrl = URL(string: github) {
                     Link(destination: githubUrl) {
                         Image(systemName: "arrow.up.right.square")
                             .font(.system(size: 16))

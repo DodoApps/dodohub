@@ -108,7 +108,7 @@ struct AppCardView: View {
 
             // Stats at bottom
             HStack(spacing: 12) {
-                StarsBadge(count: app.repoStats.stars)
+                StarsBadge(count: app.stars)
 
                 Text("v\(app.version)")
                     .font(.system(size: 13))

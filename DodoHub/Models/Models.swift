@@ -3,10 +3,43 @@ import Foundation
 // MARK: - Catalog Root
 
 struct Catalog: Codable {
-    let schemaVersion: String
-    let lastUpdated: String
+    let schemaVersion: String?
+    let lastUpdated: String?
     let publishers: [Publisher]
     let apps: [CatalogApp]
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+
+        schemaVersion = try container.decodeIfPresent(String.self, forKey: .schemaVersion)
+        lastUpdated = try container.decodeIfPresent(String.self, forKey: .lastUpdated)
+
+        // Decode publishers, skipping invalid ones
+        publishers = (try? container.decodeIfPresent([SafeDecodable<Publisher>].self, forKey: .publishers))?
+            .compactMap { $0.value } ?? []
+
+        // Decode apps, skipping invalid ones
+        apps = (try? container.decodeIfPresent([SafeDecodable<CatalogApp>].self, forKey: .apps))?
+            .compactMap { $0.value } ?? []
+    }
+}
+
+// MARK: - Safe Decodable Wrapper
+
+/// Wraps a Decodable type to allow graceful failure - if decoding fails, value is nil instead of throwing
+struct SafeDecodable<T: Decodable>: Decodable {
+    let value: T?
+
+    init(from decoder: Decoder) throws {
+        do {
+            let container = try decoder.singleValueContainer()
+            value = try container.decode(T.self)
+        } catch {
+            // Log the error for debugging but don't fail
+            print("⚠️ Failed to decode \(T.self): \(error.localizedDescription)")
+            value = nil
+        }
+    }
 }
 
 // MARK: - Publisher
@@ -16,12 +49,30 @@ struct Publisher: Codable, Identifiable {
     let name: String
     let description: String?
     let website: String?
-    let github: String
+    let github: String?
     let email: String?
     let sponsorUrl: String?
     let verified: Bool
-    let verifiedAt: String
-    let joinedAt: String
+    let verifiedAt: String?
+    let joinedAt: String?
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+
+        // Required fields
+        id = try container.decode(String.self, forKey: .id)
+        name = try container.decode(String.self, forKey: .name)
+
+        // Optional fields with defaults
+        description = try container.decodeIfPresent(String.self, forKey: .description)
+        website = try container.decodeIfPresent(String.self, forKey: .website)
+        github = try container.decodeIfPresent(String.self, forKey: .github)
+        email = try container.decodeIfPresent(String.self, forKey: .email)
+        sponsorUrl = try container.decodeIfPresent(String.self, forKey: .sponsorUrl)
+        verified = try container.decodeIfPresent(Bool.self, forKey: .verified) ?? false
+        verifiedAt = try container.decodeIfPresent(String.self, forKey: .verifiedAt)
+        joinedAt = try container.decodeIfPresent(String.self, forKey: .joinedAt)
+    }
 }
 
 // MARK: - App
@@ -33,7 +84,7 @@ struct CatalogApp: Codable, Identifiable {
     let tagline: String
     let description: String
     let category: AppCategory
-    let featured: Bool?
+    let featured: Bool
     let icon: String
     let screenshots: [String]
     let version: String
@@ -42,15 +93,44 @@ struct CatalogApp: Codable, Identifiable {
     let downloadSize: Int
     let releaseDate: String
     let bundleId: String
-    let features: [String]?
-    let verification: Verification
-    let repoStats: RepoStats
+    let features: [String]
+    let verification: Verification?
+    let repoStats: RepoStats?
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+
+        // Required fields - app must have these to be valid
+        id = try container.decode(String.self, forKey: .id)
+        name = try container.decode(String.self, forKey: .name)
+        downloadUrl = try container.decode(String.self, forKey: .downloadUrl)
+
+        // Optional fields with sensible defaults
+        publisherId = try container.decodeIfPresent(String.self, forKey: .publisherId) ?? "unknown"
+        tagline = try container.decodeIfPresent(String.self, forKey: .tagline) ?? ""
+        description = try container.decodeIfPresent(String.self, forKey: .description) ?? ""
+        category = try container.decodeIfPresent(AppCategory.self, forKey: .category) ?? .utilities
+        featured = try container.decodeIfPresent(Bool.self, forKey: .featured) ?? false
+        icon = try container.decodeIfPresent(String.self, forKey: .icon) ?? ""
+        screenshots = try container.decodeIfPresent([String].self, forKey: .screenshots) ?? []
+        version = try container.decodeIfPresent(String.self, forKey: .version) ?? "1.0.0"
+        minMacOS = try container.decodeIfPresent(String.self, forKey: .minMacOS) ?? "14.0"
+        downloadSize = try container.decodeIfPresent(Int.self, forKey: .downloadSize) ?? 0
+        releaseDate = try container.decodeIfPresent(String.self, forKey: .releaseDate) ?? ""
+        bundleId = try container.decodeIfPresent(String.self, forKey: .bundleId) ?? ""
+        features = try container.decodeIfPresent([String].self, forKey: .features) ?? []
+        verification = try container.decodeIfPresent(Verification.self, forKey: .verification)
+        repoStats = try container.decodeIfPresent(RepoStats.self, forKey: .repoStats)
+    }
 
     var formattedSize: String {
-        ByteCountFormatter.string(fromByteCount: Int64(downloadSize), countStyle: .file)
+        guard downloadSize > 0 else { return "Unknown size" }
+        return ByteCountFormatter.string(fromByteCount: Int64(downloadSize), countStyle: .file)
     }
 
     var formattedReleaseDate: String {
+        guard !releaseDate.isEmpty else { return "Unknown" }
+
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
 
@@ -74,6 +154,10 @@ struct CatalogApp: Codable, Identifiable {
     }
 
     var maintenanceStatus: MaintenanceStatus {
+        guard let repoStats = repoStats, !repoStats.lastCommitAt.isEmpty else {
+            return .unknown
+        }
+
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
 
@@ -101,6 +185,40 @@ struct CatalogApp: Codable, Identifiable {
             return .abandoned
         }
     }
+
+    // MARK: - Convenience accessors for verification
+
+    var isOpenSource: Bool {
+        verification?.openSource ?? false
+    }
+
+    var isNotarized: Bool {
+        verification?.notarized ?? false
+    }
+
+    var isPrivacyFocused: Bool {
+        verification?.noAnalytics ?? false
+    }
+
+    var isSandboxed: Bool {
+        verification?.sandboxed ?? false
+    }
+
+    var repoUrl: String? {
+        verification?.repoUrl
+    }
+
+    var license: String? {
+        verification?.license
+    }
+
+    var stars: Int {
+        repoStats?.stars ?? 0
+    }
+
+    var openIssues: Int {
+        repoStats?.openIssues ?? 0
+    }
 }
 
 // MARK: - Category
@@ -110,6 +228,19 @@ enum AppCategory: String, Codable, CaseIterable {
     case utilities
     case analytics
     case security
+    case developer
+    case media
+    case social
+    case finance
+    case education
+    case other
+
+    // Handle unknown categories gracefully
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let rawValue = try container.decode(String.self)
+        self = AppCategory(rawValue: rawValue.lowercased()) ?? .other
+    }
 
     var displayName: String {
         rawValue.capitalized
@@ -121,6 +252,12 @@ enum AppCategory: String, Codable, CaseIterable {
         case .utilities: return "wrench.and.screwdriver"
         case .analytics: return "chart.bar"
         case .security: return "lock.shield"
+        case .developer: return "hammer"
+        case .media: return "play.rectangle"
+        case .social: return "bubble.left.and.bubble.right"
+        case .finance: return "dollarsign.circle"
+        case .education: return "book"
+        case .other: return "square.grid.2x2"
         }
     }
 }
@@ -129,14 +266,28 @@ enum AppCategory: String, Codable, CaseIterable {
 
 struct Verification: Codable {
     let openSource: Bool
-    let repoUrl: String
-    let license: String
+    let repoUrl: String?
+    let license: String?
     let notarized: Bool
     let codeReviewed: Bool
     let sandboxed: Bool
     let noAnalytics: Bool
-    let repoCreatedAt: String
-    let verifiedAt: String
+    let repoCreatedAt: String?
+    let verifiedAt: String?
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+
+        openSource = try container.decodeIfPresent(Bool.self, forKey: .openSource) ?? false
+        repoUrl = try container.decodeIfPresent(String.self, forKey: .repoUrl)
+        license = try container.decodeIfPresent(String.self, forKey: .license)
+        notarized = try container.decodeIfPresent(Bool.self, forKey: .notarized) ?? false
+        codeReviewed = try container.decodeIfPresent(Bool.self, forKey: .codeReviewed) ?? false
+        sandboxed = try container.decodeIfPresent(Bool.self, forKey: .sandboxed) ?? false
+        noAnalytics = try container.decodeIfPresent(Bool.self, forKey: .noAnalytics) ?? false
+        repoCreatedAt = try container.decodeIfPresent(String.self, forKey: .repoCreatedAt)
+        verifiedAt = try container.decodeIfPresent(String.self, forKey: .verifiedAt)
+    }
 }
 
 // MARK: - Repo Stats
@@ -146,7 +297,17 @@ struct RepoStats: Codable {
     let openIssues: Int
     let stars: Int
     let archived: Bool
-    let fetchedAt: String
+    let fetchedAt: String?
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+
+        lastCommitAt = try container.decodeIfPresent(String.self, forKey: .lastCommitAt) ?? ""
+        openIssues = try container.decodeIfPresent(Int.self, forKey: .openIssues) ?? 0
+        stars = try container.decodeIfPresent(Int.self, forKey: .stars) ?? 0
+        archived = try container.decodeIfPresent(Bool.self, forKey: .archived) ?? false
+        fetchedAt = try container.decodeIfPresent(String.self, forKey: .fetchedAt)
+    }
 }
 
 // MARK: - Maintenance Status
