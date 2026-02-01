@@ -3,9 +3,11 @@ import SwiftUI
 struct ContentView: View {
     @StateObject private var catalogService = CatalogService.shared
     @StateObject private var stateManager = AppStateManager.shared
+    @StateObject private var downloadManager = DownloadManager.shared
     @State private var selectedFilter: SidebarFilter = .all
     @State private var selectedApp: CatalogApp?
     @State private var isInitialLoading = true
+    @State private var showDownloadError = false
 
     var body: some View {
         Group {
@@ -24,6 +26,29 @@ struct ContentView: View {
 
             withAnimation(.easeOut(duration: 0.3)) {
                 isInitialLoading = false
+            }
+        }
+        .onChange(of: downloadManager.lastError?.appName) { _, newValue in
+            if newValue != nil {
+                showDownloadError = true
+            }
+        }
+        .alert("Download failed", isPresented: $showDownloadError) {
+            Button("Try again") {
+                if let errorInfo = downloadManager.lastError,
+                   let app = catalogService.apps.first(where: { $0.name == errorInfo.appName }) {
+                    Task {
+                        await downloadManager.retry(app)
+                    }
+                }
+                downloadManager.clearError()
+            }
+            Button("OK", role: .cancel) {
+                downloadManager.clearError()
+            }
+        } message: {
+            if let errorInfo = downloadManager.lastError {
+                Text("\(errorInfo.appName): \(errorInfo.error.localizedDescription)\n\n\(errorInfo.error.recoverySuggestion ?? "")")
             }
         }
         .frame(minWidth: 900, minHeight: 600)

@@ -348,6 +348,7 @@ enum AppInstallState: Equatable {
     case updateAvailable(installed: String, available: String)
     case downloading(progress: Double)
     case installing
+    case failed(error: String)
 
     var buttonTitle: String {
         switch self {
@@ -361,6 +362,8 @@ enum AppInstallState: Equatable {
             return "Downloading \(Int(progress * 100))%"
         case .installing:
             return "Installing..."
+        case .failed:
+            return "Retry"
         }
     }
 
@@ -370,6 +373,70 @@ enum AppInstallState: Equatable {
             return false
         default:
             return true
+        }
+    }
+
+    var isFailed: Bool {
+        if case .failed = self {
+            return true
+        }
+        return false
+    }
+
+    var errorMessage: String? {
+        if case .failed(let error) = self {
+            return error
+        }
+        return nil
+    }
+}
+
+// MARK: - Download Error
+
+enum DownloadError: Error, LocalizedError {
+    case invalidURL
+    case networkUnavailable
+    case serverError(statusCode: Int)
+    case fileNotFound
+    case downloadFailed(underlying: Error)
+    case fileSystemError(underlying: Error)
+    case cancelled
+
+    var errorDescription: String? {
+        switch self {
+        case .invalidURL:
+            return "Invalid download URL"
+        case .networkUnavailable:
+            return "No internet connection"
+        case .serverError(let code):
+            return "Server error (HTTP \(code))"
+        case .fileNotFound:
+            return "File not found on server"
+        case .downloadFailed(let error):
+            return "Download failed: \(error.localizedDescription)"
+        case .fileSystemError(let error):
+            return "Could not save file: \(error.localizedDescription)"
+        case .cancelled:
+            return "Download cancelled"
+        }
+    }
+
+    var recoverySuggestion: String? {
+        switch self {
+        case .invalidURL:
+            return "The app's download link may be outdated. Try refreshing the catalog."
+        case .networkUnavailable:
+            return "Check your internet connection and try again."
+        case .serverError:
+            return "The server may be temporarily unavailable. Try again later."
+        case .fileNotFound:
+            return "The download file may have been moved or deleted. Try refreshing the catalog."
+        case .downloadFailed:
+            return "Check your internet connection and try again."
+        case .fileSystemError:
+            return "Check that you have enough disk space and try again."
+        case .cancelled:
+            return nil
         }
     }
 }

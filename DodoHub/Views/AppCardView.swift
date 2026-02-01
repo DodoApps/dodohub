@@ -75,6 +75,19 @@ struct AppCardView: View {
                         .foregroundStyle(colorScheme == .dark ? Color(red: 1.0, green: 0.7, blue: 0.4) : .orange)
                         .clipShape(Capsule())
                     }
+
+                    if hasFailed {
+                        HStack(spacing: 5) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                            Text("Failed")
+                                .font(.system(size: 12, weight: .semibold))
+                        }
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(Color.red.opacity(colorScheme == .dark ? 0.25 : 0.12))
+                        .foregroundStyle(colorScheme == .dark ? Color(red: 1.0, green: 0.5, blue: 0.5) : .red)
+                        .clipShape(Capsule())
+                    }
                 }
             }
 
@@ -153,6 +166,10 @@ struct AppCardView: View {
         return false
     }
 
+    private var hasFailed: Bool {
+        state.isFailed
+    }
+
     // MARK: - Theme Colors
 
     private var cardBackground: some ShapeStyle {
@@ -214,6 +231,8 @@ struct AppCardView: View {
             return Color(red: 0.95, green: 0.6, blue: 0.2)
         case .downloading, .installing:
             return Color(white: 0.5)
+        case .failed:
+            return .red
         }
     }
 }
@@ -315,6 +334,8 @@ struct AppCompactRow: View {
             return Color(red: 0.95, green: 0.6, blue: 0.2)
         case .downloading, .installing:
             return Color(white: 0.5)
+        case .failed:
+            return .red
         }
     }
 }

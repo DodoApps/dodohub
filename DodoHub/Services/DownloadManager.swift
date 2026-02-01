@@ -1,19 +1,33 @@
 import Foundation
 import AppKit
+import Network
 
 @MainActor
 class DownloadManager: NSObject, ObservableObject {
     static let shared = DownloadManager()
 
     @Published var activeDownloads: [String: DownloadTask] = [:]
+    @Published var lastError: (appName: String, error: DownloadError)?
 
     private var urlSession: URLSession!
     private var downloadTasks: [URLSessionDownloadTask: String] = [:]
+    private let networkMonitor = NWPathMonitor()
+    private var isNetworkAvailable = true
 
     override init() {
         super.init()
         let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = 30
+        config.timeoutIntervalForResource = 300
         urlSession = URLSession(configuration: config, delegate: nil, delegateQueue: .main)
+
+        // Monitor network availability
+        networkMonitor.pathUpdateHandler = { [weak self] path in
+            Task { @MainActor in
+                self?.isNetworkAvailable = path.status == .satisfied
+            }
+        }
+        networkMonitor.start(queue: DispatchQueue.global(qos: .utility))
     }
 
     struct DownloadTask {
@@ -25,11 +39,63 @@ class DownloadManager: NSObject, ObservableObject {
         var task: URLSessionDownloadTask?
     }
 
+    // MARK: - URL Validation
+
+    func validateURL(_ urlString: String) async -> Result<URL, DownloadError> {
+        guard let url = URL(string: urlString) else {
+            return .failure(.invalidURL)
+        }
+
+        guard isNetworkAvailable else {
+            return .failure(.networkUnavailable)
+        }
+
+        // Check if URL is reachable with HEAD request
+        var request = URLRequest(url: url)
+        request.httpMethod = "HEAD"
+        request.timeoutInterval = 10
+
+        do {
+            let (_, response) = try await urlSession.data(for: request)
+
+            guard let httpResponse = response as? HTTPURLResponse else {
+                return .failure(.serverError(statusCode: 0))
+            }
+
+            switch httpResponse.statusCode {
+            case 200...299:
+                return .success(url)
+            case 404:
+                return .failure(.fileNotFound)
+            default:
+                return .failure(.serverError(statusCode: httpResponse.statusCode))
+            }
+        } catch let error as URLError {
+            if error.code == .notConnectedToInternet || error.code == .networkConnectionLost {
+                return .failure(.networkUnavailable)
+            }
+            return .failure(.downloadFailed(underlying: error))
+        } catch {
+            return .failure(.downloadFailed(underlying: error))
+        }
+    }
+
     // MARK: - Download
 
     func download(_ app: CatalogApp) async {
-        guard let url = URL(string: app.downloadUrl) else { return }
+        // Validate URL first
+        let validationResult = await validateURL(app.downloadUrl)
 
+        switch validationResult {
+        case .failure(let error):
+            handleError(error, for: app)
+            return
+        case .success(let url):
+            await performDownload(app: app, url: url)
+        }
+    }
+
+    private func performDownload(app: CatalogApp, url: URL) async {
         // Update state
         AppStateManager.shared.updateState(for: app.id, to: .downloading(progress: 0))
 
@@ -43,7 +109,14 @@ class DownloadManager: NSObject, ObservableObject {
         )
 
         do {
-            let (tempURL, _) = try await downloadWithProgress(url: url, appId: app.id)
+            let (tempURL, response) = try await downloadWithProgress(url: url, appId: app.id)
+
+            // Verify we got a valid response
+            if let httpResponse = response as? HTTPURLResponse {
+                guard (200...299).contains(httpResponse.statusCode) else {
+                    throw DownloadError.serverError(statusCode: httpResponse.statusCode)
+                }
+            }
 
             // Move to Downloads folder
             let downloadsURL = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first!
@@ -51,7 +124,19 @@ class DownloadManager: NSObject, ObservableObject {
 
             // Remove existing file if present
             try? FileManager.default.removeItem(at: destinationURL)
-            try FileManager.default.moveItem(at: tempURL, to: destinationURL)
+
+            do {
+                try FileManager.default.moveItem(at: tempURL, to: destinationURL)
+            } catch {
+                throw DownloadError.fileSystemError(underlying: error)
+            }
+
+            // Verify file exists and has content
+            let attributes = try FileManager.default.attributesOfItem(atPath: destinationURL.path)
+            guard let fileSize = attributes[.size] as? Int64, fileSize > 0 else {
+                try? FileManager.default.removeItem(at: destinationURL)
+                throw DownloadError.downloadFailed(underlying: NSError(domain: "DownloadManager", code: -1, userInfo: [NSLocalizedDescriptionKey: "Downloaded file is empty"]))
+            }
 
             // Update state
             activeDownloads.removeValue(forKey: app.id)
@@ -65,18 +150,48 @@ class DownloadManager: NSObject, ObservableObject {
             let newState = AppStateManager.shared.getInstallState(for: app)
             AppStateManager.shared.updateState(for: app.id, to: newState)
 
+        } catch let error as DownloadError {
+            handleError(error, for: app)
+        } catch let error as URLError {
+            if error.code == .cancelled {
+                handleError(.cancelled, for: app)
+            } else if error.code == .notConnectedToInternet || error.code == .networkConnectionLost {
+                handleError(.networkUnavailable, for: app)
+            } else {
+                handleError(.downloadFailed(underlying: error), for: app)
+            }
         } catch {
-            print("Download failed: \(error)")
-            activeDownloads.removeValue(forKey: app.id)
-            AppStateManager.shared.updateState(for: app.id, to: .notInstalled)
+            handleError(.downloadFailed(underlying: error), for: app)
         }
+    }
+
+    private func handleError(_ error: DownloadError, for app: CatalogApp) {
+        activeDownloads.removeValue(forKey: app.id)
+
+        // Don't show error for cancelled downloads
+        if case .cancelled = error {
+            AppStateManager.shared.updateState(for: app.id, to: .notInstalled)
+            return
+        }
+
+        // Update state with error
+        AppStateManager.shared.updateState(for: app.id, to: .failed(error: error.localizedDescription))
+
+        // Store error for alert
+        lastError = (appName: app.name, error: error)
+
+        print("⚠️ Download failed for \(app.name): \(error.localizedDescription)")
+    }
+
+    func clearError() {
+        lastError = nil
     }
 
     private func downloadWithProgress(url: URL, appId: String) async throws -> (URL, URLResponse) {
         let request = URLRequest(url: url)
 
         return try await withCheckedThrowingContinuation { continuation in
-            let task = urlSession.downloadTask(with: request) { [weak self] tempURL, response, error in
+            let task = urlSession.downloadTask(with: request) { tempURL, response, error in
                 if let error = error {
                     continuation.resume(throwing: error)
                     return
@@ -99,6 +214,12 @@ class DownloadManager: NSObject, ObservableObject {
 
             downloadTasks[task] = appId
 
+            // Store task reference
+            if var download = activeDownloads[appId] {
+                download.task = task
+                activeDownloads[appId] = download
+            }
+
             // Observe progress
             let observation = task.progress.observe(\.fractionCompleted) { [weak self] progress, _ in
                 Task { @MainActor in
@@ -119,6 +240,17 @@ class DownloadManager: NSObject, ObservableObject {
             activeDownloads[appId] = download
             AppStateManager.shared.updateState(for: appId, to: .downloading(progress: progress))
         }
+    }
+
+    // MARK: - Retry
+
+    func retry(_ app: CatalogApp) async {
+        // Clear the error state first
+        AppStateManager.shared.updateState(for: app.id, to: .notInstalled)
+        lastError = nil
+
+        // Try downloading again
+        await download(app)
     }
 
     // MARK: - Cancel

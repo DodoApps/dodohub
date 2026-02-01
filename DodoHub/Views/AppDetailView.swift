@@ -125,22 +125,37 @@ struct AppDetailView: View {
     private var actionButton: some View {
         let state = stateManager.state(for: app.id)
 
-        return Button(action: handleAction) {
-            HStack {
-                if case .downloading(let progress) = state {
-                    ProgressView(value: progress)
-                        .progressViewStyle(.linear)
-                } else {
-                    Text(state.buttonTitle)
-                        .font(.system(size: 14, weight: .semibold))
-                        .frame(maxWidth: .infinity)
+        return VStack(spacing: 6) {
+            Button(action: handleAction) {
+                HStack {
+                    if case .downloading(let progress) = state {
+                        ProgressView(value: progress)
+                            .progressViewStyle(.linear)
+                    } else {
+                        if state.isFailed {
+                            Image(systemName: "arrow.clockwise")
+                                .font(.system(size: 12, weight: .semibold))
+                        }
+                        Text(state.buttonTitle)
+                            .font(.system(size: 14, weight: .semibold))
+                            .frame(maxWidth: .infinity)
+                    }
                 }
+                .frame(height: 34)
             }
-            .frame(height: 34)
+            .buttonStyle(.borderedProminent)
+            .tint(buttonColor)
+            .disabled(!state.isActionable)
+
+            if let errorMessage = state.errorMessage {
+                Text(errorMessage)
+                    .font(.system(size: 11))
+                    .foregroundColor(.red)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: 130)
+            }
         }
-        .buttonStyle(.borderedProminent)
-        .tint(buttonColor)
-        .disabled(!state.isActionable)
     }
 
     private var buttonColor: Color {
@@ -149,6 +164,7 @@ struct AppDetailView: View {
         case .installed: return .blue
         case .updateAvailable: return .orange
         case .downloading, .installing: return .gray
+        case .failed: return .red
         }
     }
 
@@ -164,6 +180,10 @@ struct AppDetailView: View {
             stateManager.openApp(app)
         case .downloading, .installing:
             break
+        case .failed:
+            Task {
+                await DownloadManager.shared.retry(app)
+            }
         }
     }
 
