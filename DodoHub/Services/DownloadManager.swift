@@ -144,6 +144,9 @@ class DownloadManager: NSObject, ObservableObject {
             activeDownloads.removeValue(forKey: app.id)
             AppStateManager.shared.updateState(for: app.id, to: .installing)
 
+            // Send download complete notification
+            NotificationManager.shared.sendDownloadCompleteNotification(appName: app.name)
+
             // Open DMG
             NSWorkspace.shared.open(destinationURL)
 
@@ -181,6 +184,9 @@ class DownloadManager: NSObject, ObservableObject {
 
         // Store error for alert
         lastError = (appName: app.name, error: error)
+
+        // Send download failed notification
+        NotificationManager.shared.sendDownloadFailedNotification(appName: app.name, error: error.localizedDescription)
 
         print("⚠️ Download failed for \(app.name): \(error.localizedDescription)")
     }

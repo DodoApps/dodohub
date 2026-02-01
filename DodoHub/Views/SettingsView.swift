@@ -1,4 +1,5 @@
 import SwiftUI
+import Sparkle
 
 // MARK: - Settings Manager
 
@@ -56,6 +57,11 @@ enum SortOrder: String, CaseIterable, Identifiable {
 struct SettingsView: View {
     @ObservedObject private var settings = SettingsManager.shared
     @Environment(\.colorScheme) private var colorScheme
+    let updater: SPUUpdater?
+
+    init(updater: SPUUpdater? = nil) {
+        self.updater = updater
+    }
 
     var body: some View {
         TabView {
@@ -69,12 +75,19 @@ struct SettingsView: View {
                     Label("Appearance", systemImage: "paintbrush")
                 }
 
+            if updater != nil {
+                updatesSettings
+                    .tabItem {
+                        Label("Updates", systemImage: "arrow.triangle.2.circlepath")
+                    }
+            }
+
             aboutView
                 .tabItem {
                     Label("About", systemImage: "info.circle")
                 }
         }
-        .frame(width: 450, height: 300)
+        .frame(width: 480, height: 340)
     }
 
     // MARK: - General Settings
@@ -130,6 +143,15 @@ struct SettingsView: View {
         .padding()
     }
 
+    // MARK: - Updates Settings
+
+    @ViewBuilder
+    private var updatesSettings: some View {
+        if let updater = updater {
+            UpdateSettingsView(updater: updater)
+        }
+    }
+
     // MARK: - About View
 
     private var aboutView: some View {
@@ -157,7 +179,7 @@ struct SettingsView: View {
                 Text("DodoHub")
                     .font(.system(size: 22, weight: .bold, design: .rounded))
 
-                Text("Version 1.0.0")
+                Text("Version \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0.0")")
                     .font(.system(size: 14))
                     .foregroundStyle(.secondary)
             }
@@ -197,6 +219,55 @@ struct SettingsView: View {
         if panel.runModal() == .OK, let url = panel.url {
             settings.downloadLocation = url.path
         }
+    }
+}
+
+// MARK: - Update Settings View
+
+struct UpdateSettingsView: View {
+    private let updater: SPUUpdater
+    @State private var automaticallyChecksForUpdates: Bool
+    @State private var automaticallyDownloadsUpdates: Bool
+
+    init(updater: SPUUpdater) {
+        self.updater = updater
+        self._automaticallyChecksForUpdates = State(initialValue: updater.automaticallyChecksForUpdates)
+        self._automaticallyDownloadsUpdates = State(initialValue: updater.automaticallyDownloadsUpdates)
+    }
+
+    var body: some View {
+        Form {
+            Section {
+                Toggle("Automatically check for updates", isOn: $automaticallyChecksForUpdates)
+                    .onChange(of: automaticallyChecksForUpdates) { _, newValue in
+                        updater.automaticallyChecksForUpdates = newValue
+                    }
+
+                Toggle("Automatically download updates", isOn: $automaticallyDownloadsUpdates)
+                    .onChange(of: automaticallyDownloadsUpdates) { _, newValue in
+                        updater.automaticallyDownloadsUpdates = newValue
+                    }
+                    .disabled(!automaticallyChecksForUpdates)
+
+                Button("Check for updates now") {
+                    updater.checkForUpdates()
+                }
+                .buttonStyle(.bordered)
+            }
+
+            Section {
+                if let lastUpdateCheck = updater.lastUpdateCheckDate {
+                    HStack {
+                        Text("Last checked")
+                        Spacer()
+                        Text(lastUpdateCheck, style: .relative)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+        }
+        .formStyle(.grouped)
+        .padding()
     }
 }
 

@@ -20,6 +20,8 @@
 		A10000010000000000000011 /* Helpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000020000000000000011 /* Helpers.swift */; };
 		A10000010000000000000012 /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000020000000000000012 /* SidebarView.swift */; };
 		A10000010000000000000013 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000020000000000000014 /* SettingsView.swift */; };
+		A10000010000000000000015 /* NotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000020000000000000015 /* NotificationManager.swift */; };
+		A10000010000000000000016 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = A1000000SPARKLE00000001 /* Sparkle */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -38,6 +40,7 @@
 		A10000020000000000000012 /* SidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarView.swift; sourceTree = "<group>"; };
 		A10000020000000000000013 /* DodoHub.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = DodoHub.entitlements; sourceTree = "<group>"; };
 		A10000020000000000000014 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		A10000020000000000000015 /* NotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -45,6 +48,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A10000010000000000000016 /* Sparkle in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -96,6 +100,7 @@
 				A10000020000000000000009 /* DownloadManager.swift */,
 				A10000020000000000000010 /* AppStateManager.swift */,
 				A10000020000000000000011 /* Helpers.swift */,
+				A10000020000000000000015 /* NotificationManager.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -128,6 +133,9 @@
 			dependencies = (
 			);
 			name = DodoHub;
+			packageProductDependencies = (
+				A1000000SPARKLE00000001 /* Sparkle */,
+			);
 			productName = DodoHub;
 			productReference = A10000030000000000000001 /* DodoHub.app */;
 			productType = "com.apple.product-type.application";
@@ -156,6 +164,9 @@
 				Base,
 			);
 			mainGroup = A10000050000000000000001;
+			packageReferences = (
+				A1000000SPARKLEPKG00001 /* XCRemoteSwiftPackageReference "Sparkle" */,
+			);
 			productRefGroup = A10000050000000000000003 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -193,6 +204,7 @@
 				A10000010000000000000011 /* Helpers.swift in Sources */,
 				A10000010000000000000012 /* SidebarView.swift in Sources */,
 				A10000010000000000000013 /* SettingsView.swift in Sources */,
+				A10000010000000000000015 /* NotificationManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -391,6 +403,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		A1000000SPARKLEPKG00001 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.6.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		A1000000SPARKLE00000001 /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A1000000SPARKLEPKG00001 /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = A10000090000000000000001 /* Project object */;
 }
