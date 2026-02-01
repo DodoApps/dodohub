@@ -2,10 +2,12 @@ import SwiftUI
 
 @main
 struct DodoHubApp: App {
+    @StateObject private var settings = SettingsManager.shared
+
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .preferredColorScheme(.dark)
+                .preferredColorScheme(settings.colorScheme.colorScheme)
         }
         .windowStyle(.automatic)
         .defaultSize(width: 1100, height: 700)
@@ -21,6 +23,10 @@ struct DodoHubApp: App {
                 }
                 .keyboardShortcut("r", modifiers: [.command])
             }
+        }
+
+        Settings {
+            SettingsView()
         }
     }
 }

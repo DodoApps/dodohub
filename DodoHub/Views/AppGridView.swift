@@ -6,21 +6,40 @@ struct AppGridView: View {
     @ObservedObject var stateManager: AppStateManager
     @Binding var selectedApp: CatalogApp?
     @State private var searchText = ""
+    @State private var sortOrder: SortOrder = SettingsManager.shared.defaultSortOrder
     @Environment(\.colorScheme) private var colorScheme
 
     private let columns = [
         GridItem(.adaptive(minimum: 220, maximum: 300), spacing: 20)
     ]
 
-    var filteredApps: [CatalogApp] {
-        if searchText.isEmpty {
-            return apps
+    var filteredAndSortedApps: [CatalogApp] {
+        var result = apps
+
+        // Filter by search
+        if !searchText.isEmpty {
+            let lowercased = searchText.lowercased()
+            result = result.filter { app in
+                app.name.lowercased().contains(lowercased) ||
+                app.tagline.lowercased().contains(lowercased)
+            }
         }
-        let lowercased = searchText.lowercased()
-        return apps.filter { app in
-            app.name.lowercased().contains(lowercased) ||
-            app.tagline.lowercased().contains(lowercased)
+
+        // Sort
+        switch sortOrder {
+        case .featured:
+            result.sort { ($0.featured == true ? 0 : 1) < ($1.featured == true ? 0 : 1) }
+        case .nameAsc:
+            result.sort { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+        case .nameDesc:
+            result.sort { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedDescending }
+        case .stars:
+            result.sort { $0.stars > $1.stars }
+        case .recentlyUpdated:
+            result.sort { $0.releaseDate > $1.releaseDate }
         }
+
+        return result
     }
 
     var body: some View {
@@ -36,7 +55,32 @@ struct AppGridView: View {
 
                     Spacer()
 
-                    Text("\(filteredApps.count) apps")
+                    // Sort picker
+                    Menu {
+                        ForEach(SortOrder.allCases) { order in
+                            Button {
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    sortOrder = order
+                                }
+                            } label: {
+                                Label(order.rawValue, systemImage: order.icon)
+                            }
+                        }
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "arrow.up.arrow.down")
+                                .font(.system(size: 12, weight: .medium))
+                            Text(sortOrder.rawValue)
+                                .font(.system(size: 13, weight: .medium))
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 7)
+                        .background(colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.05))
+                        .clipShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+
+                    Text("\(filteredAndSortedApps.count) apps")
                         .font(.system(size: 15))
                         .foregroundStyle(colorScheme == .dark ? Color(white: 0.5) : Color(white: 0.5))
                         .padding(.horizontal, 14)
@@ -50,11 +94,11 @@ struct AppGridView: View {
 
                 // Grid
                 ScrollView {
-                    if filteredApps.isEmpty {
+                    if filteredAndSortedApps.isEmpty {
                         emptyState
                     } else {
                         LazyVGrid(columns: columns, spacing: 20) {
-                            ForEach(filteredApps) { app in
+                            ForEach(filteredAndSortedApps) { app in
                                 AppCardView(
                                     app: app,
                                     state: stateManager.state(for: app.id)

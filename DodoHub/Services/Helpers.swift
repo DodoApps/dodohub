@@ -387,3 +387,155 @@ struct DownloadProgressView: View {
         }
     }
 }
+
+// MARK: - Shimmer Effect
+
+struct ShimmerModifier: ViewModifier {
+    @State private var phase: CGFloat = 0
+    @Environment(\.colorScheme) private var colorScheme
+
+    func body(content: Content) -> some View {
+        content
+            .overlay(
+                GeometryReader { geometry in
+                    let gradient = LinearGradient(
+                        colors: [
+                            .clear,
+                            shimmerColor.opacity(0.4),
+                            shimmerColor.opacity(0.6),
+                            shimmerColor.opacity(0.4),
+                            .clear
+                        ],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+
+                    Rectangle()
+                        .fill(gradient)
+                        .frame(width: geometry.size.width * 0.6)
+                        .offset(x: -geometry.size.width * 0.3 + phase * (geometry.size.width * 1.6))
+                        .blendMode(.sourceAtop)
+                }
+            )
+            .mask(content)
+            .onAppear {
+                withAnimation(
+                    .linear(duration: 1.5)
+                    .repeatForever(autoreverses: false)
+                ) {
+                    phase = 1
+                }
+            }
+    }
+
+    private var shimmerColor: Color {
+        colorScheme == .dark ? Color.white : Color.white
+    }
+}
+
+extension View {
+    func shimmer() -> some View {
+        modifier(ShimmerModifier())
+    }
+}
+
+// MARK: - Skeleton Loading Card
+
+struct SkeletonCardView: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            // Icon and badges skeleton
+            HStack(alignment: .top) {
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(skeletonColor)
+                    .frame(width: 72, height: 72)
+                    .shimmer()
+
+                Spacer()
+
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(skeletonColor)
+                    .frame(width: 80, height: 28)
+                    .shimmer()
+            }
+
+            // Title and tagline skeleton
+            VStack(alignment: .leading, spacing: 8) {
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(skeletonColor)
+                    .frame(width: 140, height: 20)
+                    .shimmer()
+
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(skeletonColor)
+                    .frame(height: 16)
+                    .shimmer()
+
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(skeletonColor)
+                    .frame(width: 100, height: 16)
+                    .shimmer()
+            }
+
+            Spacer()
+
+            // Stats skeleton
+            HStack(spacing: 12) {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(skeletonColor)
+                    .frame(width: 60, height: 24)
+                    .shimmer()
+
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(skeletonColor)
+                    .frame(width: 50, height: 24)
+                    .shimmer()
+
+                Spacer()
+
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(skeletonColor)
+                    .frame(width: 70, height: 28)
+                    .shimmer()
+            }
+        }
+        .padding(24)
+        .frame(height: 260)
+        .background(cardBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 20))
+    }
+
+    private var skeletonColor: Color {
+        colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.06)
+    }
+
+    private var cardBackground: some ShapeStyle {
+        if colorScheme == .dark {
+            return AnyShapeStyle(Color(white: 0.12))
+        } else {
+            return AnyShapeStyle(Color(white: 0.98))
+        }
+    }
+}
+
+// MARK: - Skeleton Grid View
+
+struct SkeletonGridView: View {
+    let count: Int
+
+    private let columns = [
+        GridItem(.adaptive(minimum: 220, maximum: 300), spacing: 20)
+    ]
+
+    var body: some View {
+        LazyVGrid(columns: columns, spacing: 20) {
+            ForEach(0..<count, id: \.self) { _ in
+                SkeletonCardView()
+            }
+        }
+        .padding(.horizontal, 24)
+        .padding(.bottom, 24)
+    }
+}

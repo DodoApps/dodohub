@@ -80,7 +80,34 @@ struct ContentView: View {
     @ViewBuilder
     private var detailContent: some View {
         if catalogService.isLoading && catalogService.apps.isEmpty {
-            LoadingView()
+            // Show skeleton loading for initial load
+            ZStack {
+                ThemedBackground()
+
+                VStack(spacing: 0) {
+                    // Header skeleton
+                    HStack {
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.06))
+                            .frame(width: 120, height: 32)
+                            .shimmer()
+
+                        Spacer()
+
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.06))
+                            .frame(width: 80, height: 28)
+                            .shimmer()
+                    }
+                    .padding(.horizontal, 24)
+                    .padding(.top, 24)
+                    .padding(.bottom, 16)
+
+                    ScrollView {
+                        SkeletonGridView(count: 6)
+                    }
+                }
+            }
         } else if let error = catalogService.error, catalogService.apps.isEmpty {
             errorView(error)
         } else {
