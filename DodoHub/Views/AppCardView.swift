@@ -195,25 +195,6 @@ struct AppCardView: View {
         }
     }
 
-    private var borderColor: Color {
-        if colorScheme == .dark {
-            return isHovering ? Color.white.opacity(0.15) : Color.white.opacity(0.08)
-        } else {
-            return isHovering ? Color.black.opacity(0.12) : Color.black.opacity(0.06)
-        }
-    }
-
-    private var installedBorderColor: Color {
-        if isInstalled {
-            return Color.accentGreen.opacity(colorScheme == .dark ? 0.5 : 0.3)
-        }
-        return borderColor
-    }
-
-    private var shadowColor: Color {
-        colorScheme == .dark ? Color.black.opacity(0.4) : Color.black.opacity(0.12)
-    }
-
     private var primaryTextColor: Color {
         colorScheme == .dark ? .white : Color(white: 0.1)
     }
@@ -236,20 +217,6 @@ struct AppCardView: View {
         )
     }
 
-    private var buttonColor: Color {
-        switch state {
-        case .notInstalled:
-            return .accentGreen
-        case .installed:
-            return Color(red: 0.2, green: 0.5, blue: 0.9)
-        case .updateAvailable:
-            return Color(red: 0.95, green: 0.6, blue: 0.2)
-        case .downloading, .installing:
-            return Color(white: 0.5)
-        case .failed:
-            return .red
-        }
-    }
 }
 
 // MARK: - Compact Card (for lists)

@@ -122,7 +122,21 @@ class DownloadManager: NSObject, ObservableObject {
             let downloadPath = SettingsManager.shared.downloadLocation
             let expandedPath = NSString(string: downloadPath).expandingTildeInPath
             let downloadsURL = URL(fileURLWithPath: expandedPath)
-            let destinationURL = downloadsURL.appendingPathComponent("\(app.name)-\(app.version).dmg")
+
+            // Ensure download directory exists
+            if !FileManager.default.fileExists(atPath: downloadsURL.path) {
+                do {
+                    try FileManager.default.createDirectory(at: downloadsURL, withIntermediateDirectories: true)
+                } catch {
+                    throw DownloadError.fileSystemError(underlying: error)
+                }
+            }
+
+            // Sanitize filename to remove characters that could cause issues
+            let sanitizedName = app.name.replacingOccurrences(of: "/", with: "-")
+                .replacingOccurrences(of: ":", with: "-")
+                .replacingOccurrences(of: "\\", with: "-")
+            let destinationURL = downloadsURL.appendingPathComponent("\(sanitizedName)-\(app.version).dmg")
 
             // Remove existing file if present
             try? FileManager.default.removeItem(at: destinationURL)

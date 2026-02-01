@@ -62,7 +62,11 @@ class AppStateManager: ObservableObject {
             return
         }
 
-        NSWorkspace.shared.openApplication(at: appURL, configuration: .init())
+        NSWorkspace.shared.openApplication(at: appURL, configuration: .init()) { runningApp, error in
+            if let error = error {
+                print("Failed to open app: \(error.localizedDescription)")
+            }
+        }
     }
 
     func revealInFinder(_ app: CatalogApp) {
