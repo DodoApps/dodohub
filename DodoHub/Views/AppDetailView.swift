@@ -26,6 +26,11 @@ struct AppDetailView: View {
                     // Description
                     descriptionSection
 
+                    // Paid Alternatives
+                    if !app.paidAlternatives.isEmpty {
+                        paidAlternativesSection
+                    }
+
                     // Features
                     if !app.features.isEmpty {
                         featuresSection(app.features)
@@ -255,6 +260,27 @@ struct AppDetailView: View {
                 .font(.system(size: 15))
                 .foregroundColor(.secondary)
                 .lineSpacing(3)
+        }
+    }
+
+    // MARK: - Paid Alternatives
+
+    private var paidAlternativesSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Free alternative to")
+                .font(.system(size: 18, weight: .semibold))
+
+            HStack(spacing: 8) {
+                ForEach(app.paidAlternatives, id: \.self) { alternative in
+                    Text(alternative)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(colorScheme == .dark ? .white : Color(white: 0.2))
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(colorScheme == .dark ? Color.white.opacity(0.1) : Color.black.opacity(0.05))
+                        .clipShape(Capsule())
+                }
+            }
         }
     }
 
