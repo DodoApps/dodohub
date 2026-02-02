@@ -53,6 +53,11 @@ brew tap dodoapps/tap
 brew install --cask dodohub
 ```
 
+If you get a security warning when opening the app, run:
+```bash
+xattr -cr /Applications/DodoHub.app
+```
+
 ### Download DMG
 
 Download the latest release from the [Releases](https://github.com/DodoApps/dodohub/releases) page.
