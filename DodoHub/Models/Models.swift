@@ -85,6 +85,7 @@ struct CatalogApp: Codable, Identifiable {
     let description: String
     let category: AppCategory
     let featured: Bool
+    let paidAlternatives: [String]
     let icon: String
     let screenshots: [String]
     let version: String
@@ -111,6 +112,7 @@ struct CatalogApp: Codable, Identifiable {
         description = try container.decodeIfPresent(String.self, forKey: .description) ?? ""
         category = try container.decodeIfPresent(AppCategory.self, forKey: .category) ?? .utilities
         featured = try container.decodeIfPresent(Bool.self, forKey: .featured) ?? false
+        paidAlternatives = try container.decodeIfPresent([String].self, forKey: .paidAlternatives) ?? []
         icon = try container.decodeIfPresent(String.self, forKey: .icon) ?? ""
         screenshots = try container.decodeIfPresent([String].self, forKey: .screenshots) ?? []
         version = try container.decodeIfPresent(String.self, forKey: .version) ?? "1.0.0"
