@@ -6,7 +6,7 @@ struct Catalog: Codable {
     let schemaVersion: String?
     let lastUpdated: String?
     let publishers: [Publisher]
-    let apps: [CatalogApp]
+    var apps: [CatalogApp]
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
@@ -88,12 +88,13 @@ struct CatalogApp: Codable, Identifiable {
     let paidAlternatives: [String]
     let icon: String
     let screenshots: [String]
-    let version: String
+    var version: String
     let minMacOS: String
-    let downloadUrl: String
-    let downloadSize: Int
-    let releaseDate: String
+    var downloadUrl: String
+    var downloadSize: Int
+    var releaseDate: String
     let bundleId: String
+    let repoSlug: String
     let features: [String]
     let verification: Verification?
     let repoStats: RepoStats?
@@ -104,7 +105,6 @@ struct CatalogApp: Codable, Identifiable {
         // Required fields - app must have these to be valid
         id = try container.decode(String.self, forKey: .id)
         name = try container.decode(String.self, forKey: .name)
-        downloadUrl = try container.decode(String.self, forKey: .downloadUrl)
 
         // Optional fields with sensible defaults
         publisherId = try container.decodeIfPresent(String.self, forKey: .publisherId) ?? "unknown"
@@ -117,9 +117,11 @@ struct CatalogApp: Codable, Identifiable {
         screenshots = try container.decodeIfPresent([String].self, forKey: .screenshots) ?? []
         version = try container.decodeIfPresent(String.self, forKey: .version) ?? "1.0.0"
         minMacOS = try container.decodeIfPresent(String.self, forKey: .minMacOS) ?? "14.0"
+        downloadUrl = try container.decodeIfPresent(String.self, forKey: .downloadUrl) ?? ""
         downloadSize = try container.decodeIfPresent(Int.self, forKey: .downloadSize) ?? 0
         releaseDate = try container.decodeIfPresent(String.self, forKey: .releaseDate) ?? ""
         bundleId = try container.decodeIfPresent(String.self, forKey: .bundleId) ?? ""
+        repoSlug = try container.decodeIfPresent(String.self, forKey: .repoSlug) ?? ""
         features = try container.decodeIfPresent([String].self, forKey: .features) ?? []
         verification = try container.decodeIfPresent(Verification.self, forKey: .verification)
         repoStats = try container.decodeIfPresent(RepoStats.self, forKey: .repoStats)
@@ -440,6 +442,40 @@ enum DownloadError: Error, LocalizedError {
         case .cancelled:
             return nil
         }
+    }
+}
+
+// MARK: - GitHub Release (for dynamic version fetching)
+
+struct GitHubRelease: Codable {
+    let tagName: String
+    let publishedAt: String?
+    let assets: [GitHubAsset]
+
+    enum CodingKeys: String, CodingKey {
+        case tagName = "tag_name"
+        case publishedAt = "published_at"
+        case assets
+    }
+
+    var version: String {
+        tagName.hasPrefix("v") ? String(tagName.dropFirst()) : tagName
+    }
+
+    var dmgAsset: GitHubAsset? {
+        assets.first { $0.name.hasSuffix(".dmg") }
+    }
+}
+
+struct GitHubAsset: Codable {
+    let name: String
+    let size: Int
+    let browserDownloadUrl: String
+
+    enum CodingKeys: String, CodingKey {
+        case name
+        case size
+        case browserDownloadUrl = "browser_download_url"
     }
 }
 
